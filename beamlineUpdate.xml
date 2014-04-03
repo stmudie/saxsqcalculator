@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<Module>
+<ModulePrefs title="SAXS/WAXS q-range calculator" height="600">
+    <Require feature="wave" /> 
+    <Require feature="locked-domain" /> 
+  </ModulePrefs>
+<Content type="html">
+<![CDATA[ 
+<div id="content_div" style="height: 50px;"></div>
+  
+
+
+    <script src="http://www.google.com/jsapi"></script>
+
+    <script type="text/javascript">
+
+    // Load jQuery
+    google.load("jquery", "1.3.2");
+    google.load("jqueryui", "1.7.2");
+
+
+    var div = document.getElementById('content_div');
+    
+
+
+var wooYayIntervalId = 0;
+
+function wooYayClickHandler ( )
+{
+  if ( document.getElementById("wooYayButton").value == "Click me!" )
+  {
+    // Start the timer
+    document.getElementById("wooYayButton").value = "Enough already!";
+    wooYayIntervalId = setInterval ( "wooYay()", 1000 );
+  }
+  else
+  {
+    document.getElementById("wooYayMessage").innerHTML = "";
+    document.getElementById("wooYayButton").value = "Click me!";
+    clearInterval ( wooYayIntervalId );
+  }
+}
+
+function wooYay ( )
+{
+  document.getElementById("wooYayMessage").innerHTML = "<object width='100%' height='500' type='text/plain' data='http://saxsqcalculator.googlecode.com/svn/trunk/message.txt' border='0' ></object>";
+     
+}
+
+</script>
+
+<div id="wooYayMessage" style="height: 1.5em; font-size: 2em; color: red;"></div>
+<input type="button" name="clickMe" id="wooYayButton" value="Click me!" onclick="wooYayClickHandler()"/>
+
+   
+
+    
+   ]]> 
+  </Content>
+</Module>

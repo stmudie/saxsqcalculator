@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<Module>
+<ModulePrefs title="SAXS/WAXS q-range calculator" height="750">
+    <Require feature="wave" /> 
+    <Require feature="locked-domain" /> 
+    <Require feature="rpc" />
+    <Require feature="views" />
+  </ModulePrefs>
+<Content type="html">
+<![CDATA[ 
+<div id="content_div" style="height: 50px;"></div>
+<!-- <div wd="waxs_div" style="height: 50px;"></div> -->
+  
+<!-- Some Slider editing -->
+    <link rel="stylesheet" href="http://saxsqcalculator.googlecode.com/svn/trunk/css/lightbox-demo.css" />
+    <link type="text/css" href="http://saxsqcalculator.googlecode.com/svn/trunk/css/custom-theme/jquery-ui-1.7.2.custom.css" rel="stylesheet" />
+    <style type="text/css">
+      #slider { margin: 10px; }
+    </style>
+<!-- <style type="text/css">   -->
+<!--     #waxsslider { margin: 10px: }   -->
+<!--  </style>   -->
+
+
+    <script src="http://www.google.com/jsapi"></script>
+    <script src="//hangoutsapi.talkgadget.google.com/hangouts/api/hangout.js?v=0.2"></script>
+
+    <script type="text/javascript">
+
+    // Load jQuery
+    google.load("jquery", "1.3.2");
+    google.load("jqueryui", "1.7.2");
+
+
+    var div = document.getElementById('content_div');
+    
+    function sliderMoved(e, ui) {
+      document.getElementById("txtEnergy").value=ui.value;
+      buttonClicked();      
+    }
+
+// Duplication of the above to see if it needed in a slider
+//
+//	var waxsdiv = document.getElementById('waxs_div');
+//
+//	function sliderMoved(e, ui){
+//	  document.getElementById("txtWaxsangle").value=ui.value;
+//	  buttonClicked();
+//	}
+//
+// Defining the different camera options
+    function radioClicked() {
+
+	var extensionTube = '';
+	var entranceCone = '';
+	var detector = '';
+	var detectorPosition = '';
+
+      if (document.getElementById("Long").checked==true) {
+	camLength = 7000;
+	extensionTube = 'Long';
+	}
+      if (document.getElementById("Medium").checked==true) {
+	camLength = 3000;
+	extensionTube = 'Medium';        
+	}
+      if (document.getElementById("Short").checked==true) {
+	camLength = 1000;
+	extensionTube = 'Short';        
+	}
+      if (document.getElementById("Shortest").checked==true) {
+	camLength = 600;
+	extensionTube = 'Shortest';        
+	}
+      if (document.getElementById("OffsetCone").checked==true) {
+	camLength = camLength + 600;
+	entranceCone = 'OffsetCone';        
+	}
+      if (document.getElementById("LongCone").checked==true) {
+	camLength = camLength + 400;
+	entranceCone = 'LongCone';        
+	}
+      if (document.getElementById("ShortCone").checked==true) {
+	camLength = camLength + 100;
+	entranceCone = 'ShortCone';        
+	}
+      if (document.getElementById("StumpyCone").checked==true) {
+	camLength = camLength + 20;
+	entranceCone = 'StumpyCone';        
+ 	}
+      if (document.getElementById("marCCD").checked==true) {
+        detector = 'marCCD';        
+        if (document.getElementById("Symmetric").checked==true) {
+	  camRadius = 82.5;
+          detectorPosition = 'Symmetric';
+	}
+	else  
+	{
+	  camRadius = 120;
+          detectorPosition = 'Offset';
+	}
+	}
+      if (document.getElementById("Pilatus").checked==true) {
+        detector = 'Pilatus';      
+        if (document.getElementById("Symmetric").checked==true) {
+	  camRadius = 120;
+          detectorPosition = 'Symmetric';
+	}
+	else  
+	{
+	  camRadius = 180;
+          detectorPosition = 'Offset';
+	}
+	}
+
+	if (!(wave && wave.isInWaveContainer())) {
+	  var image = "http://saxsqcalculator.googlecode.com/svn/trunk/images/" + extensionTube + entranceCone + ".jpg";
+	  document.getElementById("cameraImage").src=image;
+	}
+
+	document.getElementById("txtRadius").value=camRadius;
+        document.getElementById("txtLength").value=camLength;	
+
+	if (wave && wave.isInWaveContainer()) {
+	  wave.getState().submitDelta({'extensionTube': extensionTube});
+	  wave.getState().submitDelta({'entranceCone': entranceCone});        
+	  wave.getState().submitDelta({'detector': detector});        
+	  wave.getState().submitDelta({'detectorPosition': detectorPosition});                
+          wave.getState().submitDelta({'length': camLength});
+	}
+
+      buttonClicked();
+   }
+
+// In the below section variable are being defined and calculated using 'var'. 
+// Initiallly defined are user selected variables to define camera length and energy
+// Then constants such as beamstop radius and pi are defined
+// Finally calculations are perfomed that call all of these.
+
+    function buttonClicked() {
+      var length = parseInt(document.getElementById('txtLength').value);
+      var energy = parseInt(document.getElementById('txtEnergy').value);
+      var detectorR = parseInt(document.getElementById('txtRadius').value);
+
+      var wavelength = 12400/energy;
+      var beamstopR = 2.5;
+	var pi = 3.141592654;
+	
+// First attempt to define another text box for the WAXS detector system
+
+      var waxslength = parseInt(document.getElementById('txtWaxslength').value);
+      var waxsdetrad = parseInt(document.getElementById('txtWaxsdetrad').value);
+      var waxsangle = parseInt(document.getElementById('txtWaxsangle').value);
+
+// Calculation for 2-Theta. Note that this is purely geometircal and is wavelength independant.
+// A second calculation is included for comparing the 2 theta range to a copper k alpha source
+
+	var MaxAtanOpp = detectorR/length;
+	var MinAtanOpp = beamstopR/length;
+	var TTMaxCalc = Math.atan(MaxAtanOpp);
+	var TTMax = (TTMaxCalc*180)/pi;
+	var TTMinCalc = Math.atan(MinAtanOpp);
+	var TTMin = (TTMinCalc*180)/pi;
+
+// Calculations of q
+
+      var sinThetaMin = Math.sin(TTMinCalc/2);
+	var sinThetaMax = Math.sin(TTMaxCalc/2);
+
+      var qMin = 4*pi*sinThetaMin/(wavelength);
+	var qMax = 4*pi*sinThetaMax/(wavelength);
+      
+// old form      var qMin = 4*pi*beamstopR/(2*length*wavelength);
+
+// Calculations of 2 theta versus a copper k alpha source
+//
+	var CuMinA = 1.54*qMin;
+	var CuMaxA = 1.54*qMax;
+	var FourPi = 4*pi
+
+	var CuMinOpp = CuMinA/FourPi;
+	var CuMaxOpp = CuMaxA/FourPi;
+
+	var CuMinCalc = Math.asin(CuMinOpp);
+	var CuMaxCalc = Math.asin(CuMaxOpp);
+
+	var CuMin = ((CuMinCalc*180)/pi)*2;
+	var CuMax = ((CuMaxCalc*180)/pi)*2;
+
+// Calculations of d
+      
+	var DMax = 2*pi/qMin;
+    var DMin = 2*pi/qMax;
+
+// Calculations for S 
+
+	var sMax = qMax/(2*pi);
+	var sMin = qMin/(2*pi);
+
+// Calculation of WAXS q,s,d, theta ranges based on waxs dimensions and camera length
+	
+	var waxsOsqd = (waxsdetrad*waxsdetrad)/4
+	var waxsAsqd = waxslength*waxslength
+	var waxshyp = Math.sqrt(waxsOsqd+waxsAsqd)
+	var waxsopp = waxsdetrad/(2*waxshyp)
+	var waxsthetam = Math.asin(waxsopp)
+	var waxsrad = (waxsangle*pi)/180
+	
+	var waxsradmax = waxsrad+waxsthetam
+	var waxsradmin = waxsrad-waxsthetam
+	var waxssinmax = Math.sin((waxsradmax/2))
+	var waxssinmin = Math.sin((waxsradmin/2))
+	
+	var wMin = 4*pi*waxssinmin/(wavelength);
+	var wMax = 4*pi*waxssinmax/(wavelength);
+	
+	var wsMin = wMin/(2*pi);
+	var wsMax = wMax/(2*pi);
+	
+	var wDMax = (2*pi)/wMin;
+	var wDMin = (2*pi)/wMax;
+	
+	var wTTMin = (waxsradmin*180)/pi
+	var wTTMax = (waxsradmax*180)/pi
+	
+	var wCuOppMin = (wMin*1.54)/(4*pi)
+	var wCuOppMax = (wMax*1.54)/(4*pi)
+	var wCuRadMin = Math.asin(wCuOppMin)
+	var wCuRadMax = Math.asin(wCuOppMax)
+	var wCuMin = ((wCuRadMin*180)/pi)*2
+	var wCuMax = ((wCuRadMax*180)/pi)*2
+
+// Slider defining for Energy?	
+	$('#slider').slider('option', 'value', energy);
+
+      if (wave && wave.isInWaveContainer()) {
+	wave.getState().submitDelta({'energy': energy});
+        wave.getState().submitDelta({'qMax': qMax});
+        wave.getState().submitDelta({'qMin': qMin});
+      }
+// Duplicating the slider bits above for a second slider
+//
+//	$('#waxsslider').slider('option','value', waxsangle);
+//	
+//	if (wave && wave.isInWaveContainer()) {
+//	  wave.getState().submitDelta({'waxsangle': waxsangle});
+//	  wave.getState().submitDelta({'wMax': wMax});
+//	  wave.getState().submitDelta({'wMin': wMin});
+//	}
+//
+// Defining the elements that will be called in HTML. This example was followed for all others
+
+      document.getElementById("txtQMin").innerHTML=qMin.toFixed(4);
+      document.getElementById("txtQMax").innerHTML=qMax.toFixed(4);
+
+// Immediately below is text to try to insert a calculation for S in addition to Q
+// This was selected as a starting point as the calculation in relation to Q is straightforward
+
+	document.getElementById("txtSMin").innerHTML=sMin.toFixed(4);
+	document.getElementById("txtSMax").innerHTML=sMax.toFixed(4);
+
+	document.getElementById("txtTTMin").innerHTML=TTMin.toFixed(2);
+	document.getElementById("txtTTMax").innerHTML=TTMax.toFixed(2);
+
+ 	document.getElementById("txtCuMin").innerHTML=CuMin.toFixed(2);
+	document.getElementById("txtCuMax").innerHTML=CuMax.toFixed(2);
+
+       document.getElementById("txtDMin").innerHTML=DMin.toFixed(0);
+       document.getElementById("txtDMax").innerHTML=DMax.toFixed(0);
+       
+       document.getElementById("txtWMin").innerHTML=wMin.toFixed(3);
+       document.getElementById("txtWMax").innerHTML=wMax.toFixed(3);
+      
+      document.getElementById("txtWSMin").innerHTML=wsMin.toFixed(3);
+	  document.getElementById("txtWSMax").innerHTML=wsMax.toFixed(3);
+      
+       document.getElementById("txtWDMin").innerHTML=wDMin.toFixed(1);
+       document.getElementById("txtWDMax").innerHTML=wDMax.toFixed(1);
+       
+       document.getElementById("txtWTTMin").innerHTML=wTTMin.toFixed(2);
+       document.getElementById("txtWTTMax").innerHTML=wTTMax.toFixed(2);
+    
+	  document.getElementById("txtWCuMin").innerHTML=wCuMin.toFixed(2);
+	  document.getElementById("txtWCuMax").innerHTML=wCuMax.toFixed(2);
+    
+    }
+
+    // Reset value of "count" to 0
+    function resetCounter(){
+      wave.getState().submitDelta({'qMin': '0'});
+      wave.log("I just reset the q-range to zero.");
+    }
+
+    function stateUpdated() {
+      var inver = "-1";
+      var pi = 3.141592654;
+      inver = inver.sup();
+      
+      if(!wave.getState().get('qMin')) {
+        div.innerHTML = "The q range is 0.";
+      }
+      else {
+
+	var qMin = parseFloat(wave.getState().get('qMin'));
+	var qMax = parseFloat(wave.getState().get('qMax'));
+	var DMin = 2*pi/qMax;
+        var DMax = 2*pi/qMin;
+        div.innerHTML = "The q-range is " + qMin.toFixed(4) + " to " + qMax.toFixed(4) + "&Aring " + inver + ". <br/> The d-spacing is " + DMin.toFixed(1) + " to " + DMax.toFixed(1) + "&Aring .";
+        wave.log("The qMin is " + wave.getState().get('qMin'));
+      } 
+      if(!wave.getState().get('extensionTube')) {
+      }
+      else {
+	var extensionTube = wave.getState().get('extensionTube');
+	switch(extensionTube)
+	  {
+	  case 'Long':
+	     document.getElementById('Long').checked=true;
+             break;
+          case 'Medium':
+	     document.getElementById('Medium').checked=true;
+             break;
+          case 'Short':
+	     document.getElementById('Short').checked=true;
+             break;
+          case 'Shortest':
+	     document.getElementById('Shortest').checked=true;
+             break;
+          }
+      }
+      if(!wave.getState().get('entranceCone')) {
+      }
+      else {
+	var entranceCone = wave.getState().get('entranceCone');
+	switch(entranceCone)
+	  {
+	  case 'LongCone':
+	     document.getElementById('LongCone').checked=true;
+             break;
+          case 'ShortCone':
+	     document.getElementById('ShortCone').checked=true;
+             break;
+          case 'OffsetCone':
+	     document.getElementById('OffsetCone').checked=true;
+             break;
+          case 'StumpyCone':
+	     document.getElementById('StumpyCone').checked=true;
+             break;
+          }
+      }
+      if(!wave.getState().get('detector')) {
+      }
+      else {
+	var detector = wave.getState().get('detector');
+	switch(detector)
+	  {
+	  case 'marCCD':
+	     document.getElementById('marCCD').checked=true;
+             break;
+          case 'Pilatus':
+	     document.getElementById('Pilatus').checked=true;
+             break;
+          }
+      }
+      if(!wave.getState().get('detectorPosition')) {
+      }
+      else {
+	var detectorPosition = wave.getState().get('detectorPosition');
+	switch(detectorPosition)
+	  {
+	  case 'Symmetric':
+	     document.getElementById('Symmetric').checked=true;
+             break;
+          case 'Offset':
+	     document.getElementById('Offset').checked=true;
+             break;
+          }
+      }
+      if(!wave.getState().get('energy')) {
+      }
+      else {
+	var energy = wave.getState().get('energy');
+	document.getElementById('txtEnergy').value=energy;
+	$('#slider').slider('option','value',energy);
+      }
+      if (document.getElementById('txtLength').value=='') {
+	  radioClicked();
+	}
+// The below text is trying to see if this is also required to get the sliders to work.
+//
+//	if(!wave.getState().get('waxsangle')) {
+//      }
+//      else {
+//	var waxsangle = wave.getState().get('waxsangle');
+//	document.getElementById('txtWaxsangle').value=waxsangle;
+//	$('#waxsslider').slider('option','value',waxsangle);
+//     }
+      
+     var image = "http://saxsqcalculator.googlecode.com/svn/trunk/images/" + extensionTube + entranceCone + ".jpg";
+     document.getElementById("cameraImage").src=image;
+
+    }
+ 
+    function init() {
+    
+    if (wave && wave.isInWaveContainer()) {
+	$(function(){        
+	  $("#slider").slider({animate: true, 
+			       min: 5000, 
+                               max: 20000,
+			       slide: sliderMoved
+                               });
+	  document.getElementById("not4Wave").style.display = "none";	  
+
+	  wave.setStateCallback(stateUpdated);
+          });
+      } 
+      else
+      {
+        $("#slider").slider({animate: true, 
+			       min: 5000, 
+                               max: 20000,
+			       slide: sliderMoved
+                               });
+        radioClicked();
+      }
+    }
+// Not sure if this is also required for the slider   
+//     function init() {
+//  
+//    if (wave && wave.isInWaveContainer()) {
+//	$(function(){        
+//	  $("#waxsslider").slider({animate: true, 
+//			       min: 22, 
+//                             max: 60,
+//			       slide: sliderMoved
+//                              });
+//	  document.getElementById("waxsWave").style.display = "none";	  
+//
+//	  wave.setStateCallback(stateUpdated);
+//          });
+//      } 
+//      else
+//      {
+//       $("#waxsslider").slider({animate: true, 
+//			       min: 22, 
+//                               max: 60,
+//			       slide: sliderMoved
+//                               });
+//        radioClicked();
+//      }
+//    }
+    
+      gadgets.util.registerOnLoadHandler(init);
+    
+    </script>
+    
+    <!--<script src="http://saxsqcalculator.googlecode.com/svn/trunk/script/lightbox-demo.js"></script>-->
+    
+<!--    The below block is definiing the text of listing q-range (and other conversions) as a simple text list    -->
+<!--    <label for="txtQMin" id="labelQRange">The q-range is </label> -->
+<!--    <span id="txtQMin"></span> to <span id="txtQMax"></span> -->
+<!--    <label for="txtQMin" id="labelQA">&Aring<sup>-1</sup>.  </label> --> 
+<!--    <br> -->
+<!--   <label for="txtSMin" id="labelSRange">This is an s-range of </label> -->
+<!--    <span id="txtSMin"></span> to <span id="txtSMax"></span>  -->
+<!--    <label for="txtSMin" id="labelSA">&Aring<sup>-1</sup>. </label>    -->
+<!--    <br> -->
+<!--    <label for="txtTTMin" id="labelTTRange">This is a 2&Theta range of </label>  -->
+<!--    <span id="txtTTMin"></span> to <span id="txtTTMax"></span>  -->
+<!--    <label for="txtTTMin" id="labelTTA">degrees.</label>    -->
+<!--    <br>    -->
+<!--    <label for="txtCuMin" id="labelCuRange">Compared to a Cu K<sub>&alpha</sub> source this is a 2&Theta range of </label>  -->
+<!--    <span id="txtCuMin"></span> to <span id="txtCuMax"></span>  -->
+<!--    <label for="txtCuMin" id="labelCuA">degrees.</label>  -->
+<!--    <br>   -->
+<!--    <label for="txtDMin" id="labelDRange">The d-spacing range examined is </label>   -->
+<!--    <span id="txtDMin"></span> to <span id="txtDMax"></span>   -->
+<!--    <label for="txtDMin" id="labelDA">&Aring . </label>    -->
+<!--    <br>   -->
+    
+   <div id="not4Wave">   
+ <!--  <div wd="waxsWave"> </div>  -->
+    
+    <center><table width="85%"border="1">
+	<tr align="center">	<td>Dimension and Units</td>							<td>SAXS Minimum</td>						<td>SAXS Maximum</td>					<td>WAXS Minimum</td>					<td>WAXS Maximum</td></tr>
+	<tr align="center">	<td>q-range (&Aring<sup>-1</sup>)</td>					<td><span id="txtQMin"></span></td>			<td><span id="txtQMax"></span></td>		<td><span id="txtWMin"></span></td>		<td><span id="txtWMax"></span></td></tr>
+	<tr align="center">	<td>s-range (&Aring<sup>-1</sup>)</td>					<td><span id="txtSMin"></span></td>			<td><span id="txtSMax"></span></td>		<td><span id="txtWSMin"></span></td>	<td><span id="txtWSMax"></span></td></tr>
+	<tr align="center">	<td>d-spacing (&Aring)</td>								<td><span id="txtDMin"></span></td>			<td><span id="txtDMax"></span></td>		<td><span id="txtWDMin"></span></td>	<td><span id="txtWDMax"></span></td></tr>
+	<tr align="center">	<td>2&Theta range (deg)</td>							<td><span id="txtTTMin"></span></td>		<td><span id="txtTTMax"></span></td>	<td><span id="txtWTTMin"></span></td>	<td><span id="txtWTTMax"></span></td></tr>
+	<tr align="center"> <td>2&Theta for Cu K<sub>&alpha</sub></td>				<td><span id="txtCuMin"></span></td>		<td><span id="txtCuMax"></span></td>	<td><span id="txtWCuMin"></span></td>	<td><span id="txtWCuMax"></span></td></tr>
+	</table></center>
+    
+</div> 
+<!-- This block defines the text entry fields for Energy, Length, and so on. It also calls the slider for Energy -->
+
+    <label for="txtEnergy">X-ray Energy</label>
+    <input type=text value="12000" id="txtEnergy" onChange="buttonClicked()" size="8"> eV<br>
+    <div id="slider"></div>
+    <label for="txtLength">SAXS Camera Length (mm)</label>    
+    <input type=text value="" id="txtLength" size="8">
+    <label for="txtRadius">SAXS Detector Radius (mm)</label>    
+    <input type=text value="" id="txtRadius" size="8"> <br>
+    
+<!--  A trial to see if the WAXS length (and other parameters) can be included simply by copying the above  -->
+<!--  As of version 82 of this file, this section includes an attempt to get a new slider working -->
+
+    <label for="txtWaxslength">WAXS Camera Length (mm)</label>
+    <input type=text value="400" id="txtWaxslength" size="8">
+    
+    <label for="txtWaxdetrad">WAXS Detector Length (mm)</label>
+    <input type=text value="169" id="txtWaxsdetrad" size="8"><br>
+    
+    <label for="txtWaxsangle">WAXS Angle (degrees)</label>
+    <input type=text value="24" id="txtWaxsangle" onChange="buttonClicked()" size="8">
+<!--    <div wd="waxsslider"></div>  -->
+
+<!-- Defining the table that will allow camera length selection -->
+
+    <table border="0" width="100%" cellpadding="10">
+    <tr>
+
+    <td width="25%" valign="top" bgcolor="#288aff">
+    Extension Tube Choice <br>
+    <input type=radio name="extensionTubeChoice" value="Long" id="Long" onClick="radioClicked()" checked="yes"> Long <br>
+    <input type=radio name="extensionTubeChoice" value="Medium" id="Medium" onClick="radioClicked()"> Medium <br>
+    <input type=radio name="extensionTubeChoice" value="Short" id="Short" onClick="radioClicked()"> Short <br>
+    <input type=radio name="extensionTubeChoice" value="Shortest" id="Shortest" onClick="radioClicked()"> Shortest <br>
+    </td>
+
+    <td width="25%" valign="top" bgcolor="#6bafff">
+    Entrance Cone Choice <br>
+    <input type=radio name="entranceConeChoice" value="OffsetCone" id="OffsetCone" onClick="radioClicked()"> Offset <br>
+    <input type=radio name="entranceConeChoice" value="LongCone" id="LongCone" onClick="radioClicked()" checked="yes"> Long <br>
+    <input type=radio name="entranceConeChoice" value="ShortCone" id="ShortCone" onClick="radioClicked()"> Short <br>
+    <input type=radio name="entranceConeChoice" value="StumpyCone" id="StumpyCone" onClick="radioClicked()"> Stumpy <br>
+    </td>
+
+    <td width="25%" valign="top" bgcolor="#a0ccff">
+    Detector Choice <br>
+    <input type=radio name="detectorChoice" value="marCCD" id="marCCD" onClick="radioClicked()"> MAR165 <br>
+    <input type=radio name="detectorChoice" value="Pilatus" id="Pilatus" onClick="radioClicked()" checked="yes"> Pilatus 1M <br>
+    </td>
+
+    <td width="25%" valign="top" bgcolor="#d6e9ff">
+    Detector Position Choice <br>
+    <input type=radio name="detectorPositionChoice" value="Symmetric" id="Symmetric" onClick="radioClicked()" checked="yes"> Symmetric <br>
+    <input type=radio name="detectorPositionChoice" value="Offset" id="Offset" onClick="radioClicked()"> Offset <br>
+    </td>
+
+    </tr>
+    </table>
+    
+    <img id="cameraImage" src="http://saxsqcalculator.googlecode.com/svn/trunk/images/LongLongCone.jpg" width='600'>
+
+    <!--<a href="http://saxsqcalculator.googlecode.com/svn/trunk/images/LongLongCone.jpg" class="thumb" rel="lightbox"> <img src="http://saxsqcalculator.googlecode.com/svn/trunk/images/LongLongCone.jpg" width='500'/>	</a>-->
+
+
+
+   ]]> 
+  </Content>
+</Module>

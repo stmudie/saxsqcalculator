@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<Module>
+<ModulePrefs title="SAXS plot" height="600">
+    <Require feature="wave" /> 
+    <Require feature="locked-domain" /> 
+  </ModulePrefs>
+<Content type="html">
+<![CDATA[ 
+<div id="content_div" style="height: 50px;"></div>
+  
+
+    <link href="http://flot.googlecode.com/svn/trunk/examples/layout.css" rel="stylesheet" type="text/css"></link>
+    <link type="text/css" href="http://saxsqcalculator.googlecode.com/svn/trunk/css/custom-theme/jquery-ui-1.7.2.custom.css" rel="stylesheet" />
+    <style type="text/css">
+      #slider { margin: 10px; }
+    </style>
+
+
+    <script src="http://www.google.com/jsapi"></script>
+
+    <script type="text/javascript">
+
+    // Load jQuery
+    google.load("jquery", "1.3.2");
+    google.load("jqueryui", "1.7.2");
+
+    </script>
+
+    <script language="javascript" type="text/javascript" src="http://flot.googlecode.com/svn/trunk/jquery.flot.js"></script>
+
+    <script id="source" language="javascript" type="text/javascript">
+
+    var div = document.getElementById('content_div');
+    
+    function updateGUI(Rg) {
+	   plot(Rg);	
+  	   document.getElementById('txtRg').value = Rg.toFixed(1);
+	   $('#slider').slider('option', 'value', Math.log(Rg)*10);	
+    }
+
+    function sliderStopped(e, ui) {
+	  var Rg = Math.exp(ui.value/10);
+          wave.getState().submitDelta({'Rg': Rg});
+      
+    }
+
+    function sliderMoved(e, ui) {
+          var Rg = Math.exp(ui.value/10);
+	  plot(Rg);
+          document.getElementById('txtRg').value = Rg.toFixed(1);
+    }
+
+    function rgChanged() {
+	var Rg = document.getElementById('txtRg').value;
+	plot(Rg);	
+	$('#slider').slider('option', 'value', Math.log(Rg)*10);
+        if (wave && wave.isInWaveContainer()) {
+	   wave.getState().submitDelta({'Rg': Rg});
+      }
+
+   }
+
+    function scientificTick(val,axis){
+
+	switch(val)
+	{
+	case 0.0001:
+	  return '0.0001';
+	  break;	
+	case 0.001:
+	  return '0.001';
+	  break;
+	case 0.01:
+	  return '0.01';
+	  break;
+        case 0.1:
+	  return '.1';
+	  break;
+        case 1:
+	  return '1';
+	  break;
+	default:
+	  return '';
+	}
+    }
+
+    function plot(R) {
+
+    
+
+    $(function () {
+
+      var options = {
+		    colors : ["#288aff"],
+		    xaxis: {
+			   ticks: [0.001,0.002,0.003,0.004,0.005,0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7],
+			   tickFormatter : scientificTick,
+	        	   transform: function (v) { return Math.log(v); },
+		 	   inverseTransform: function (v) { return Math.exp(v); }
+		 	   },
+                    yaxis: {
+			   min : 0.0001,
+			   max : 1.2,
+			   ticks: [0.0001,0.0002,0.0003,0.0004,0.0005,0.001,0.002,0.003,0.004,0.005,0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,1],
+			   tickFormatter : scientificTick,
+			   transform: function (v) { return Math.log(v); },
+		 	   inverseTransform: function (v) { return Math.exp(v); }
+		 	   }
+		    }
+
+      var d1 = [];
+
+      for (var i = -3; i <=0 ; i += 0.1){
+	  q = Math.pow(10,i);
+          d1.push([q, (Math.exp((-1.0/3.0)*(Math.pow(q*R,2))))]);
+        }
+        $.plot($("#placeholder"), [ d1 ], options);
+    });
+    }    
+
+
+    function stateUpdated() {
+     
+      if(!wave.getState().get('Rg')) {
+      }
+      else {
+	var Rg = wave.getState().get('Rg')
+
+	updateGUI(parseInt(Rg));
+        
+	wave.log("Radius of gyration updated to " + Rg);
+      } 
+     
+
+    }
+ 
+    function init() {
+    
+    if (wave && wave.isInWaveContainer()) {
+	$(function(){        
+	  $("#slider").slider({animate: true, 
+			       value: Math.log(100)*10,
+			       min: 0, 
+                               max: 70,
+			       slide: sliderMoved,
+			       stop: sliderStopped
+                               });
+	 
+	  wave.setStateCallback(stateUpdated);
+          });
+      } 
+      else
+      {
+        $("#slider").slider({animate: true, 
+			       value: Math.log(100)*10,
+			       min: 0, 
+                               max: 70,
+			       slide: sliderMoved
+                               });
+      }
+     plot(10);     
+}        
+
+    
+    gadgets.util.registerOnLoadHandler(init);
+   
+    
+
+    </script>
+
+    
+    <div id="placeholder" style="width:500px;height:300px;"></div>
+    <p align="center">q   (&Aring<sup>-1</sup>) <img src="http://saxsqcalculator.googlecode.com/svn/trunk/images/transparent.gif" height="1" width="60">   </p>
+
+    <label for="txtRg">Radius of Gyration</label>
+    <input type=text value="100" id="txtRg" size="8" onChange="rgChanged()"> &Aring <br>
+    <div id="slider"></div>
+   
+
+   ]]> 
+  </Content>
+</Module>
